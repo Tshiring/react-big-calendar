@@ -205,7 +205,7 @@ const dateFnsLocalizer = function ({
   timeZone,
 }) {
   function getDateFnsTimeZoneOffset(date) {
-    return getTimezoneOffset(timeZone, date) / 60000 // Convert to minutes
+    return getTimezoneOffset(timeZone, new Date(date))
   }
   function browserTZOffset() {
     /**
