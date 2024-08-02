@@ -1,5 +1,6 @@
 import * as dates from '../utils/dates'
 import { DateLocalizer } from '../localizer'
+import { getTimezoneOffset } from 'date-fns-tz'
 
 let dateRangeFormat = ({ start, end }, culture, local) =>
   `${local.format(start, 'P', culture)} – ${local.format(end, 'P', culture)}`
@@ -47,9 +48,30 @@ const dateFnsLocalizer = function ({
   getDay,
   format: _format,
   locales,
+  timeZone,
 }) {
+  function getDateFnsTimeZoneOffset(date) {
+    return getTimezoneOffset(timeZone, date) / 60000 // Convert to minutes
+  }
+  function browserTZOffset() {
+    /**
+     * Date.prototype.getTimezoneOffset horrifically flips the positive/negative from
+     * what you see in it's string, so we have to jump through some hoops to get a value
+     * we can actually compare.
+     */
+    const now = new Date()
+    const browserOffset = now.getTimezoneOffset()
+    const zoneOffset = getDateFnsTimeZoneOffset(now)
+    return zoneOffset > browserOffset ? 1 : 0
+  }
+
   return new DateLocalizer({
     formats,
+    browserTZOffset,
+    getTimezoneOffset(date, timeZone) {
+      return getTimezoneOffset(timeZone, new Date(date))
+    },
+
     firstOfWeek(culture) {
       return getDay(startOfWeek(new Date(), { locale: locales[culture] }))
     },
