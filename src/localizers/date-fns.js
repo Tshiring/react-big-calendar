@@ -1,6 +1,7 @@
 import * as dates from '../utils/dates'
 import { DateLocalizer } from '../localizer'
 import { getTimezoneOffset } from 'date-fns-tz'
+import { differenceInMinutes, startOfDay } from 'date-fns'
 
 let dateRangeFormat = ({ start, end }, culture, local) =>
   `${local.format(start, 'P', culture)} – ${local.format(end, 'P', culture)}`
@@ -43,6 +44,16 @@ export let formats = {
   agendaTimeRangeFormat: timeRangeFormat,
 }
 
+// function fixUnit(unit) {
+//   let datePart = unit ? unit.toLowerCase() : unit
+//   if (datePart === 'FullYear') {
+//     datePart = 'year'
+//   } else if (!datePart) {
+//     datePart = undefined
+//   }
+//   return datePart
+// }
+
 const dateFnsLocalizer = function ({
   startOfWeek,
   getDay,
@@ -65,12 +76,35 @@ const dateFnsLocalizer = function ({
     return zoneOffset > browserOffset ? 1 : 0
   }
 
+  function getDstOffset(start, end) {
+    const startOffset = getDateFnsTimeZoneOffset(start)
+    const endOffset = getDateFnsTimeZoneOffset(end)
+    return startOffset - endOffset
+  }
+
+  function getDayStartDstOffset(start) {
+    const dayStart = startOfDay(start)
+    return getDstOffset(dayStart, start)
+  }
+
+  function getMinutesFromMidnight(start) {
+    const dayStart = startOfDay(start)
+    const day = new Date(start)
+    return differenceInMinutes(dayStart, day) + getDayStartDstOffset(start)
+  }
+
   return new DateLocalizer({
     formats,
     browserTZOffset,
+    getDstOffset,
+    getMinutesFromMidnight,
     getTimezoneOffset(date, timeZone) {
       return getTimezoneOffset(timeZone, new Date(date))
     },
+    // eq(a, b, unit) {
+    //   const dateFnsUnit = fixUnit(unit)
+    //   return isSameDay(utcToZonedTime(a, timeZone), utcToZonedTime(b, timeZone))
+    // },
 
     firstOfWeek(culture) {
       return getDay(startOfWeek(new Date(), { locale: locales[culture] }))
